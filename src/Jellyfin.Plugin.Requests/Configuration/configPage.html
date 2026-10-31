@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Jellyfin Requests</title>
+</head>
+<body>
+    <div id="JellyfinRequestsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+        <style>
+            #JellyfinRequestsConfigPage .jfrc-section { margin-bottom: 2.5em; }
+            #JellyfinRequestsConfigPage .jfrc-row { display: flex; gap: 1em; flex-wrap: wrap; }
+            #JellyfinRequestsConfigPage .jfrc-row > .inputContainer { flex: 1 1 20em; }
+            #JellyfinRequestsConfigPage .jfrc-buttons { display: flex; gap: .6em; flex-wrap: wrap; margin: 1em 0; }
+            #JellyfinRequestsConfigPage .jfrc-buttons .emby-button { margin: 0; width: auto; }
+            #JellyfinRequestsConfigPage .jfrc-hook { display: flex; gap: .5em; align-items: center; margin: .4em 0; flex-wrap: wrap; }
+            #JellyfinRequestsConfigPage .jfrc-hook code { flex: 1 1 24em; padding: .55em .7em; border-radius: .4em; background: rgba(127,127,127,.15); overflow-wrap: anywhere; font-size: .85em; }
+            #JellyfinRequestsConfigPage .jfrc-hook strong { width: 5em; }
+            #JellyfinRequestsConfigPage .jfrc-result { margin-top: .75em; font-size: .92em; }
+            #JellyfinRequestsConfigPage .jfrc-ok { color: #3fb950; }
+            #JellyfinRequestsConfigPage .jfrc-bad { color: #f0524f; }
+            #JellyfinRequestsConfigPage table.jfrc-table { width: 100%; border-collapse: collapse; font-size: .9em; margin-top: .75em; }
+            #JellyfinRequestsConfigPage .jfrc-table th, #JellyfinRequestsConfigPage .jfrc-table td { text-align: left; padding: .45em .5em; border-bottom: 1px solid rgba(127,127,127,.25); vertical-align: top; }
+            #JellyfinRequestsConfigPage .jfrc-tag { font-size: .8em; padding: .1em .45em; border-radius: .3em; border: 1px solid currentColor; opacity: .8; white-space: nowrap; }
+        </style>
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="JellyfinRequestsConfigForm">
+
+                    <div class="jfrc-section">
+                        <h2 class="sectionTitle">Seerr</h2>
+                        <div class="jfrc-row">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="jfrSeerrUrl">Seerr URL</label>
+                                <input id="jfrSeerrUrl" data-key="SeerrUrl" type="url" is="emby-input" placeholder="http://seerr:5055" />
+                                <div class="fieldDescription">Address the Jellyfin server uses to reach Seerr.</div>
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="jfrSeerrApiKey">Seerr API key</label>
+                                <input id="jfrSeerrApiKey" data-key="SeerrApiKey" type="password" is="emby-input" autocomplete="off" />
+                                <div class="fieldDescription">Seerr → Settings → General → API Key.</div>
+                            </div>
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="jfrSeerrPublicUrl">Public Seerr URL (optional)</label>
+                            <input id="jfrSeerrPublicUrl" data-key="SeerrPublicUrl" type="url" is="emby-input" placeholder="https://requests.example.com" />
+                            <div class="fieldDescription">Used for "New request" and "Open in Seerr" links. Leave empty to reuse the URL above.</div>
+                        </div>
+                    </div>
+
+                    <div class="jfrc-section">
+                        <h2 class="sectionTitle">Radarr &amp; Sonarr (optional)</h2>
+                        <div class="fieldDescription" style="margin-bottom:1em">Enables live download progress and lets cleanup see what is still on disk. Without these, progress comes from Seerr's own (slower) sync.</div>
+                        <div class="jfrc-row">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="jfrRadarrUrl">Radarr URL</label>
+                                <input id="jfrRadarrUrl" data-key="RadarrUrl" type="url" is="emby-input" placeholder="http://radarr:7878" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="jfrRadarrApiKey">Radarr API key</label>
+                                <input id="jfrRadarrApiKey" data-key="RadarrApiKey" type="password" is="emby-input" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="jfrc-row">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="jfrSonarrUrl">Sonarr URL</label>
+                                <input id="jfrSonarrUrl" data-key="SonarrUrl" type="url" is="emby-input" placeholder="http://sonarr:8989" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="jfrSonarrApiKey">Sonarr API key</label>
+                                <input id="jfrSonarrApiKey" data-key="SonarrApiKey" type="password" is="emby-input" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="jfrc-buttons">
+                            <button is="emby-button" type="button" id="jfrTest" class="raised emby-button"><span>Save &amp; test connections</span></button>
+                        </div>
+                        <div id="jfrTestResult" class="jfrc-result"></div>
+                    </div>
+
+                    <div class="jfrc-section">
+                        <h2 class="sectionTitle">Requests page</h2>
+                        <div class="jfrc-row">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="jfrNavLabel">Menu label</label>
+                                <input id="jfrNavLabel" data-key="NavLabel" type="text" is="emby-input" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="jfrHideDeclined">Hide declined/failed after (days)</label>
+                                <input id="jfrHideDeclined" data-key="HideDeclinedAfterDays" type="number" min="0" is="emby-input" />
+                                <div class="fieldDescription">0 keeps them forever.</div>
+                            </div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="jfrShowAll" data-key="ShowAllUsersRequests" type="checkbox" is="emby-checkbox" />
+                                <span>Everyone sees everyone's requests</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">When off, users only see their own. Admins always see all.</div>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="jfrAllowCancel" data-key="AllowUsersToCancelPending" type="checkbox" is="emby-checkbox" />
+                                <span>Users can cancel their own pending requests</span>
+                            </label>
+                        </div>
+                        <div class="jfrc-row">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="jfrLive">Download progress refresh (seconds)</label>
+                                <input id="jfrLive" data-key="LiveRefreshSeconds" type="number" min="3" is="emby-input" />
+                                <div class="fieldDescription">Only polled while someone has the page open.</div>
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="jfrSeerrRefresh">Seerr refresh (seconds)</label>
+                                <input id="jfrSeerrRefresh" data-key="SeerrRefreshSeconds" type="number" min="10" is="emby-input" />
+                                <div class="fieldDescription">Fallback polling. Webhooks below make changes appear instantly.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="jfrc-section">
+                        <h2 class="sectionTitle">Webhooks</h2>
+                        <div class="fieldDescription">Add these so changes show up immediately and deletions trigger cleanup. Seerr: Settings → Notifications → Webhook (enable all types). Radarr/Sonarr: Settings → Connect → Webhook, method POST.</div>
+                        <div id="jfrHooks"></div>
+                    </div>
+
+                    <div class="jfrc-section">
+                        <h2 class="sectionTitle">Cleanup</h2>
+                        <div class="fieldDescription" style="margin-bottom:1em">Deletes the Seerr request (and its media record, so the title can be requested again) once the content is gone. Files in Radarr/Sonarr are never touched. Pending requests are never deleted.</div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input data-key="CleanupEnabled" type="checkbox" is="emby-checkbox" />
+                                <span>Enable cleanup</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input data-key="CleanupDryRun" type="checkbox" is="emby-checkbox" />
+                                <span>Dry run (only log what would be deleted)</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Leave on until the preview below matches what you expect.</div>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input data-key="CleanupOnArrDelete" type="checkbox" is="emby-checkbox" />
+                                <span>When Radarr/Sonarr deletes a movie or series (webhook)</span>
+                            </label>
+                        </div>
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input data-key="CleanupOnJellyfinRemoval" type="checkbox" is="emby-checkbox" />
+                                <span>When a movie or series leaves the Jellyfin library</span>
+                            </label>
+                        </div>
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="jfrGrace">Jellyfin removal grace period (minutes)</label>
+                            <input id="jfrGrace" data-key="JellyfinRemovalGraceMinutes" type="number" min="1" is="emby-input" />
+                            <div class="fieldDescription">Upgrades and rescans briefly drop items. The check runs after this delay.</div>
+                        </div>
+                        <div class="fieldDescription">A full pass also runs daily as the scheduled task "Clean up removed requests".</div>
+                        <div class="jfrc-buttons">
+                            <button is="emby-button" type="button" id="jfrPreview" class="raised emby-button"><span>Preview cleanup</span></button>
+                            <button is="emby-button" type="button" id="jfrRunNow" class="raised emby-button"><span>Run cleanup now</span></button>
+                        </div>
+                        <div id="jfrCleanupResult" class="jfrc-result"></div>
+                        <h3 style="margin-top:2em">Recent cleanup activity</h3>
+                        <div id="jfrJournal" class="jfrc-result"></div>
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button"><span>Save</span></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var pluginId = '5b0f3a52-8f1e-4d0c-9a77-2f6f7c1e9b41';
+                var page = document.querySelector('#JellyfinRequestsConfigPage');
+                var form = page.querySelector('#JellyfinRequestsConfigForm');
+                var current = null;
+
+                function esc(v) {
+                    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+                        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                    });
+                }
+
+                function fields() { return form.querySelectorAll('[data-key]'); }
+
+                function fill(config) {
+                    current = config;
+                    fields().forEach(function (el) {
+                        var v = config[el.getAttribute('data-key')];
+                        if (el.type === 'checkbox') el.checked = !!v;
+                        else el.value = v == null ? '' : v;
+                    });
+                    renderHooks(config.WebhookToken);
+                }
+
+                function collect(config) {
+                    fields().forEach(function (el) {
+                        var key = el.getAttribute('data-key');
+                        if (el.type === 'checkbox') config[key] = el.checked;
+                        else if (el.type === 'number') config[key] = parseInt(el.value, 10) || 0;
+                        else config[key] = el.value.trim();
+                    });
+                    return config;
+                }
+
+                function save() {
+                    return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        return ApiClient.updatePluginConfiguration(pluginId, collect(config));
+                    });
+                }
+
+                function post(path) {
+                    return ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('JellyfinRequests/' + path), dataType: 'json' });
+                }
+
+                function renderHooks(token) {
+                    var base = ApiClient.serverAddress().replace(/\/$/, '') + '/JellyfinRequests/Webhook/';
+                    page.querySelector('#jfrHooks').innerHTML = ['Seerr', 'Radarr', 'Sonarr'].map(function (name) {
+                        var url = base + name + '?token=' + encodeURIComponent(token || '');
+                        return '<div class="jfrc-hook"><strong>' + name + '</strong><code>' + esc(url) + '</code>' +
+                            '<button is="emby-button" type="button" class="emby-button raised" data-copy="' + esc(url) + '" style="margin:0;width:auto"><span>Copy</span></button></div>';
+                    }).join('') +
+                    '<div class="fieldDescription">Use an address Seerr, Radarr and Sonarr can reach. If they run on the same Docker network, replace the host with the Jellyfin container name.</div>';
+                }
+
+                function renderCandidates(items, dryRun) {
+                    if (!items.length) return '<span class="jfrc-ok">Nothing to clean up.</span>';
+                    return '<table class="jfrc-table"><thead><tr><th>Title</th><th>Requested by</th><th>Reason</th><th>Result</th></tr></thead><tbody>' +
+                        items.map(function (c) {
+                            var result = c.error ? '<span class="jfrc-bad">' + esc(c.error) + '</span>'
+                                : c.deleted ? '<span class="jfrc-ok">Deleted</span>'
+                                : '<span class="jfrc-tag">' + (dryRun || c.dryRun ? 'Would delete' : 'Pending') + '</span>';
+                            return '<tr><td>' + esc(c.title) + ' <span class="jfrc-tag">' + (c.type === 'tv' ? 'Show' : 'Movie') + '</span></td><td>' +
+                                esc((c.requestedBy || []).join(', ')) + '</td><td>' + esc(c.reason) + '</td><td>' + result + '</td></tr>';
+                        }).join('') + '</tbody></table>';
+                }
+
+                function loadJournal() {
+                    ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('JellyfinRequests/Admin/CleanupJournal'), dataType: 'json' }).then(function (res) {
+                        var items = res.items || [];
+                        page.querySelector('#jfrJournal').innerHTML = items.length
+                            ? '<table class="jfrc-table"><thead><tr><th>When</th><th>Title</th><th>Trigger</th><th>Reason</th><th>Result</th></tr></thead><tbody>' +
+                              items.slice(0, 50).map(function (c) {
+                                  var result = c.error ? '<span class="jfrc-bad">' + esc(c.error) + '</span>' : c.deleted ? '<span class="jfrc-ok">Deleted</span>' : '<span class="jfrc-tag">Dry run</span>';
+                                  return '<tr><td>' + esc(new Date(c.time).toLocaleString()) + '</td><td>' + esc(c.title) + '</td><td>' + esc(c.trigger) + '</td><td>' + esc(c.reason) + '</td><td>' + result + '</td></tr>';
+                              }).join('') + '</tbody></table>'
+                            : '<span style="opacity:.7">No cleanup activity yet.</span>';
+                    }).catch(function () { /* older server or not admin */ });
+                }
+
+                page.addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        fill(config);
+                        loadJournal();
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    save().then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                    return false;
+                });
+
+                // Uses the requests page's themed dialog when its script is loaded.
+                function confirmDialog(options) {
+                    if (window.JellyfinRequests && window.JellyfinRequests.dialog) return window.JellyfinRequests.dialog(options);
+                    return Promise.resolve(window.confirm(options.title + '\n\n' + options.message));
+                }
+
+                page.addEventListener('click', function (e) {
+                    var copy = e.target.closest('[data-copy]');
+                    if (copy) {
+                        var label = copy.querySelector('span');
+                        var text = copy.getAttribute('data-copy');
+                        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () {
+                            label.textContent = 'Copied';
+                        }).catch(function () {
+                            // Clipboard blocked (plain http): select the URL so Ctrl+C works.
+                            var range = document.createRange();
+                            range.selectNodeContents(copy.parentNode.querySelector('code'));
+                            var sel = window.getSelection();
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                            label.textContent = 'Press Ctrl+C';
+                        }).then(function () {
+                            setTimeout(function () { label.textContent = 'Copy'; }, 2000);
+                        });
+                    }
+                });
+
+                page.querySelector('#jfrTest').addEventListener('click', function () {
+                    var out = page.querySelector('#jfrTestResult');
+                    out.textContent = 'Testing…';
+                    save().then(function () { return post('Admin/Test'); }).then(function (res) {
+                        out.innerHTML = [['Seerr', res.seerr], ['Radarr', res.radarr], ['Sonarr', res.sonarr]].map(function (r) {
+                            var ok = r[1] == null;
+                            var skipped = r[1] === 'Not configured.';
+                            return '<div>' + r[0] + ': ' + (ok ? '<span class="jfrc-ok">Connected</span>' : skipped ? '<span style="opacity:.7">Not configured</span>' : '<span class="jfrc-bad">' + esc(r[1]) + '</span>') + '</div>';
+                        }).join('');
+                    }).catch(function () { out.innerHTML = '<span class="jfrc-bad">Test failed. Check the server log.</span>'; });
+                });
+
+                function runCleanup(dryRun) {
+                    if (dryRun) return doCleanup(true);
+                    confirmDialog({
+                        title: 'Run cleanup now?',
+                        message: 'Every Seerr request whose content is gone gets deleted, even with dry run on. Use Preview cleanup first to see the list. This can\'t be undone.',
+                        confirmLabel: 'Delete requests',
+                        cancelLabel: 'Cancel',
+                        danger: true
+                    }).then(function (ok) { if (ok) doCleanup(false); });
+                }
+
+                function doCleanup(dryRun) {
+                    var out = page.querySelector('#jfrCleanupResult');
+                    out.textContent = dryRun ? 'Checking…' : 'Cleaning up…';
+                    save().then(function () { return post('Admin/Cleanup?dryRun=' + dryRun); }).then(function (res) {
+                        out.innerHTML = renderCandidates(res.items || [], dryRun);
+                        loadJournal();
+                    }).catch(function (err) {
+                        out.innerHTML = '<span class="jfrc-bad">Cleanup failed' + (err && err.status ? ' (' + err.status + ')' : '') + '. Check the Seerr settings.</span>';
+                    });
+                }
+
+                page.querySelector('#jfrPreview').addEventListener('click', function () { runCleanup(true); });
+                page.querySelector('#jfrRunNow').addEventListener('click', function () { runCleanup(false); });
+            })();
+        </script>
+    </div>
+</body>
+</html>

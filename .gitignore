@@ -1,0 +1,8 @@
+bin/
+obj/
+dist/
+*.user
+.vs/
+.vscode/
+__pycache__/
+dev/local-test-server.env
