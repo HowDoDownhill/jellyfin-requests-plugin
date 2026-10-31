@@ -215,28 +215,35 @@
   position: relative;
   flex: 1 1 16em;
   max-width: 28em;
+  font-size: 0.95em; /* the icon and the input both size from this */
 }
 
+/* Icon spans 0.75em to 2em of the wrapper's em; the input's text starts at 2.5em. */
 .jfr-search-wrap .material-icons {
   position: absolute;
   left: 0.6em;
   top: 50%;
   transform: translateY(-50%);
+  font-size: 1.25em;
+  width: 1em;
+  line-height: 1;
   opacity: 0.6;
   pointer-events: none;
 }
 
+/* Themes such as ElegantFin set `padding: .5em !important` on every .emby-input, so the
+   padding here is !important too and wins on specificity. */
 .jfr-root .jfr-search {
   width: 100%;
-  padding: 0.55em 0.8em 0.55em 2.3em;
+  padding: 0.55em 0.9em 0.55em 2.5em !important;
   border-radius: 2em;
-  font-size: 0.95em;
+  font-size: 1em;
   margin: 0;
 }
 
 .jfr-root .jfr-select {
   width: auto;
-  padding: 0.5em 2em 0.5em 0.9em;
+  padding: 0.5em 2em 0.5em 0.9em !important;
   border-radius: 2em;
   font-size: 0.9em;
   margin: 0;
