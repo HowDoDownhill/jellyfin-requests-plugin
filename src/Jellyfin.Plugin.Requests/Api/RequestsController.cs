@@ -6,6 +6,11 @@ using Jellyfin.Plugin.Requests.Arr;
 using Jellyfin.Plugin.Requests.Model;
 using Jellyfin.Plugin.Requests.Seerr;
 using Jellyfin.Plugin.Requests.Services;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +32,7 @@ public class RequestsController : ControllerBase
     private readonly SeerrClient _seerr;
     private readonly ArrClient _arr;
     private readonly CleanupService _cleanup;
+    private readonly ILibraryManager _libraryManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestsController"/> class.
@@ -35,12 +41,14 @@ public class RequestsController : ControllerBase
     /// <param name="seerr">Seerr client.</param>
     /// <param name="arr">Radarr/Sonarr client.</param>
     /// <param name="cleanup">Cleanup service.</param>
-    public RequestsController(RequestStore store, SeerrClient seerr, ArrClient arr, CleanupService cleanup)
+    /// <param name="libraryManager">Jellyfin library manager.</param>
+    public RequestsController(RequestStore store, SeerrClient seerr, ArrClient arr, CleanupService cleanup, ILibraryManager libraryManager)
     {
         _store = store;
         _seerr = seerr;
         _arr = arr;
         _cleanup = cleanup;
+        _libraryManager = libraryManager;
     }
 
     private static Configuration.PluginConfiguration Config => Plugin.Instance?.Configuration ?? new Configuration.PluginConfiguration();
@@ -81,6 +89,54 @@ public class RequestsController : ControllerBase
             warnings = isAdmin ? _store.GetWarnings() : _store.GetWarnings().Take(1).ToArray(),
             items,
         });
+    }
+
+    /// <summary>
+    /// Requests behind a library item, for the "Requested by" row on its page. Seasons and
+    /// episodes resolve to their series. Visibility follows the Requests page.
+    /// </summary>
+    /// <param name="itemId">Jellyfin item id.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The matching requests, oldest first.</returns>
+    [HttpGet("Item/{itemId:guid}")]
+    public async Task<ActionResult> GetItemRequests([FromRoute] Guid itemId, CancellationToken cancellationToken)
+    {
+        var item = _libraryManager.GetItemById(itemId);
+        if (item is null)
+        {
+            return NotFound();
+        }
+
+        BaseItem target = item switch
+        {
+            Episode e when e.Series is not null => e.Series,
+            Season s when s.Series is not null => s.Series,
+            _ => item,
+        };
+
+        if (target is not (Movie or Series))
+        {
+            return CamelJson(new { items = Array.Empty<RequestView>() });
+        }
+
+        await _store.EnsureLoadedAsync(cancellationToken).ConfigureAwait(false);
+
+        var config = Config;
+        var me = CurrentUserId;
+        var isAdmin = IsAdmin;
+        var targetId = target.Id.ToString("N", CultureInfo.InvariantCulture);
+        var type = target is Series ? "tv" : "movie";
+        // Fully qualified: ControllerBase has its own MetadataProvider property.
+        var tmdb = LibraryIndex.ParseId(target.GetProviderId(MediaBrowser.Model.Entities.MetadataProvider.Tmdb));
+
+        var items = _store.Views
+            .Where(v => v.JellyfinItemId == targetId || (tmdb is not null && v.Type == type && v.TmdbId == tmdb))
+            .Where(v => isAdmin || config.ShowAllUsersRequests || v.RequestedBy.JellyfinUserId == me)
+            .Where(v => v.State is not ("declined" or "failed" or "blocklisted"))
+            .OrderBy(v => v.CreatedAt)
+            .ToList();
+
+        return CamelJson(new { items });
     }
 
     /// <summary>

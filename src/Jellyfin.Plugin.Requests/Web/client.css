@@ -584,6 +584,12 @@
   to { transform: rotate(360deg); }
 }
 
+/* ---------- "Requested by" row on item pages ---------- */
+
+.jfr-requested-when {
+  opacity: 0.7;
+}
+
 /* ---------- dialog ---------- */
 
 .jfr-dialog-backdrop {

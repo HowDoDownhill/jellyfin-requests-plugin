@@ -342,6 +342,7 @@
   function onLocationChange() {
     if (location.hash.indexOf(ROUTE) === 0) showPage(false);
     else hidePage();
+    syncItemDetails();
   }
 
   // ---------- navigation entry points ----------
@@ -938,6 +939,80 @@
     }
   }
 
+  // ---------- "Requested by" on item pages ----------
+
+  const ITEM_CACHE_MS = 60000;
+  const itemCache = new Map();
+  let itemFetching = null;
+
+  function currentDetailsId() {
+    if (location.hash.indexOf('#/details') !== 0) return null;
+    const id = new URLSearchParams(location.hash.split('?')[1] || '').get('id');
+    return id ? id.replace(/-/g, '').toLowerCase() : null;
+  }
+
+  // Adds a "Requested by" row to Jellyfin's details block (Director, Writers...) on movie and
+  // show pages. Called on navigation and DOM changes, since the block renders asynchronously.
+  async function syncItemDetails() {
+    const id = currentDetailsId();
+    const group = id && document.querySelector('#itemDetailPage:not(.hide) .itemDetailsGroup');
+    if (!group || !window.ApiClient || !window.ApiClient.getCurrentUserId()) return;
+
+    const existing = group.querySelector('.jfr-requested');
+    if (existing && existing.getAttribute('data-item') === id) return;
+    if (existing) existing.remove();
+
+    const cached = itemCache.get(id);
+    if (!cached || Date.now() - cached.at > ITEM_CACHE_MS) {
+      if (itemFetching === id) return;
+      itemFetching = id;
+      let items = [];
+      try {
+        items = (await api('GET', `Item/${id}`)).items || [];
+      } catch (e) { /* not a movie/series, or the plugin isn't configured */ }
+      itemCache.set(id, { at: Date.now(), items });
+      itemFetching = null;
+      syncItemDetails();
+      return;
+    }
+
+    if (cached.items.length) group.appendChild(buildRequestedRow(group, id, cached.items));
+  }
+
+  function buildRequestedRow(group, id, items) {
+    // Copy the classes of an existing row (Director, Writers...) so the theme styles ours the same.
+    const template = group.querySelector('.detailsGroupItem');
+    const label = template && template.querySelector('.label');
+    const content = label && label.nextElementSibling;
+    const me = (window.ApiClient.getCurrentUserId() || '').replace(/-/g, '').toLowerCase();
+
+    const entries = items.map((r) => {
+      const who = r.requestedBy.jellyfinUserId === me ? 'You' : r.requestedBy.name;
+      const extra = [seasonsText(r.seasons), r.is4k ? '4K' : ''].filter(Boolean).join(', ');
+      let status = '';
+      if (r.state === 'downloading' && r.download) status = `downloading ${Math.round(r.download.progress * 100)}%`;
+      else if (r.state !== 'available') status = (STATES[r.state] || STATES.processing).label.toLowerCase();
+      const when = [relativeTime(r.createdAt), status].filter(Boolean).join(', ');
+      return `<span><a class="emby-button button-link" href="${ROUTE}" style="color: inherit;">${esc(who)}</a>${extra ? ` (${esc(extra)})` : ''}<span class="jfr-requested-when"> · ${esc(when)}</span></span>`;
+    }).join('<span>, </span>');
+
+    const row = document.createElement('div');
+    row.className = 'jfr-requested';
+    row.setAttribute('data-item', id);
+    row.innerHTML = `
+      <div class="${esc(template ? template.className : 'detailsGroupItem')}">
+        <p class="${esc(label ? label.className : 'label')}">Requested</p>
+        <div class="${esc(content ? content.className : '')}">${entries}</div>
+      </div>`;
+    row.addEventListener('click', (e) => {
+      if (e.target.closest(`a[href="${ROUTE}"]`)) {
+        e.preventDefault();
+        showPage(true);
+      }
+    });
+    return row;
+  }
+
   // ---------- boot ----------
 
   function boot() {
@@ -979,7 +1054,11 @@
       if (state.visible) syncNavSelection();
       if (queued) return;
       queued = true;
-      setTimeout(() => { queued = false; injectNav(); }, 300);
+      setTimeout(() => {
+        queued = false;
+        injectNav();
+        syncItemDetails();
+      }, 300);
     }).observe(document.body, { childList: true, subtree: true });
 
     const wait = setInterval(() => {

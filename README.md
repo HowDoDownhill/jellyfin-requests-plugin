@@ -5,6 +5,7 @@ A Jellyfin 12 plugin that adds a **Requests** page to the Jellyfin web UI, backe
 - Renders inside Jellyfin with Jellyfin's own page and button classes. The accent color is read from your active theme at runtime, so the page follows whatever theme the server uses.
 - Groups requests by person (you first), with a By person / All / Mine view switch, status filters, type filter and search.
 - Live updates: the page long-polls the plugin, which polls the Radarr/Sonarr download queues while someone is watching and refreshes immediately on webhooks and Jellyfin library events. Download progress, ETA and episode counts show on each card.
+- Movie, show, season and episode pages get a "Requested" row in Jellyfin's details block (next to Director, Genres...) showing who asked for it, when, and its status if it isn't available yet. It follows the same visibility setting as the page.
 - Admins can approve, decline or remove requests from the page. Users can cancel their own pending requests (configurable).
 - **Remove deletes the title from Radarr/Sonarr including its files** (through Seerr, so the right instance is used, 4K included), then deletes the Seerr request. If someone else still has an active request for the same title (e.g. other seasons of a show), only the request is removed and the title stays. The confirm dialog states which of the two will happen.
 - Cleanup: deletes the Seerr request (and its media record, so the title can be requested again) once the content is gone from Jellyfin, Radarr or Sonarr.
