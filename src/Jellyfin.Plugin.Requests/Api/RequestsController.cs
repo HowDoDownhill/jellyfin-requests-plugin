@@ -76,7 +76,8 @@ public class RequestsController : ControllerBase
             isAdmin,
             currentUserId = me,
             canCancelOwn = config.AllowUsersToCancelPending,
-            seerrUrl = (string.IsNullOrWhiteSpace(config.SeerrPublicUrl) ? config.SeerrUrl : config.SeerrPublicUrl).TrimEnd('/'),
+            // Only a public address goes to browsers; the server-side URL is often internal.
+            seerrUrl = string.IsNullOrWhiteSpace(config.SeerrPublicUrl) ? null : config.SeerrPublicUrl.TrimEnd('/'),
             warnings = isAdmin ? _store.GetWarnings() : _store.GetWarnings().Take(1).ToArray(),
             items,
         });

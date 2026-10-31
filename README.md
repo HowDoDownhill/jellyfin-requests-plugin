@@ -8,6 +8,7 @@ A Jellyfin 12 plugin that adds a **Requests** page to the Jellyfin web UI, backe
 - Admins can approve, decline or remove requests from the page. Users can cancel their own pending requests (configurable).
 - **Remove deletes the title from Radarr/Sonarr including its files** (through Seerr, so the right instance is used, 4K included), then deletes the Seerr request. If someone else still has an active request for the same title (e.g. other seasons of a show), only the request is removed and the title stays. The confirm dialog states which of the two will happen.
 - Cleanup: deletes the Seerr request (and its media record, so the title can be requested again) once the content is gone from Jellyfin, Radarr or Sonarr.
+- Works with a private Seerr. With [Jellyfin Enhanced](https://github.com/n00bcodr/Jellyfin-Enhanced)'s Seerr integration on, "New request" opens Jellyfin's search (JE shows requestable Seerr results there) and title details open in JE's modal. Links to Seerr itself appear only when a public Seerr URL is set.
 
 Everything runs inside Jellyfin. API keys stay in the plugin config on the server and never reach browsers. No extra container and no File Transformation plugin needed: the script tag is added to `index.html` by ASP.NET middleware as it is served.
 

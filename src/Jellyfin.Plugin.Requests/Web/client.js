@@ -590,7 +590,7 @@
         <div class="jfr-title-row">
           <h2 class="sectionTitle jfr-title">${esc(state.label)}</h2>
           <span class="jfr-live${state.live ? '' : ' jfr-live-off'}" title="Live updates"><span class="jfr-live-dot"></span>Live</span>
-          ${data && data.seerrUrl ? `<a class="jfr-seerr-link emby-button" href="${esc(data.seerrUrl)}" target="_blank" rel="noopener"><span class="material-icons" aria-hidden="true">add</span>New request</a>` : ''}
+          ${data ? renderNewRequest('jfr-seerr-link emby-button', '<span class="material-icons" aria-hidden="true">add</span>New request') : ''}
         </div>
         <div class="jfr-chips" role="group" aria-label="Status filter">${chips}</div>
         <div class="jfr-controls">
@@ -625,7 +625,7 @@
         <div class="jfr-empty">
           <span class="material-icons jfr-empty-icon" aria-hidden="true">${anything ? 'filter_alt_off' : 'movie_filter'}</span>
           <div>${anything ? 'Nothing matches these filters.' : 'No requests yet.'}</div>
-          ${!anything && data.seerrUrl ? `<a class="emby-button raised button-submit jfr-empty-cta" href="${esc(data.seerrUrl)}" target="_blank" rel="noopener">Request something</a>` : ''}
+          ${!anything ? renderNewRequest('emby-button raised button-submit jfr-empty-cta', 'Request something') : ''}
         </div>`;
     }
 
@@ -685,6 +685,17 @@
 
   // Jellyfin Enhanced's Seerr details modal. Missing when JE isn't installed, its Seerr
   // integration is off, or its module hasn't loaded yet.
+  // "New request" opens Jellyfin's search when Jellyfin Enhanced adds Seerr results there, else the
+  // public Seerr site if one is configured. With neither, there is no button.
+  function renderNewRequest(cls, inner) {
+    const je = window.JellyfinEnhanced;
+    if (je && je.pluginConfig && je.pluginConfig.JellyseerrEnabled) {
+      return `<a class="${cls}" href="#/search">${inner}</a>`;
+    }
+    const url = state.data && state.data.seerrUrl;
+    return url ? `<a class="${cls}" href="${esc(url)}" target="_blank" rel="noopener">${inner}</a>` : '';
+  }
+
   function jeSeerrDetails() {
     const je = window.JellyfinEnhanced && window.JellyfinEnhanced.jellyseerrMoreInfo;
     return je && typeof je.open === 'function' ? je : null;
